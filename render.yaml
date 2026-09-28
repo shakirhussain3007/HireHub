@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: job-portal
+    runtime: docker
+    healthCheckPath: /health
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1

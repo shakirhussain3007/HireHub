@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#6d5dfc">
+<title>HireHub – Find your next job</title>
+<style>
+:root{--bg:#f4f5ff;--card:#fff;--tx:#1a1633;--mu:#6b6889;--pr:#6d5dfc;--pr2:#ff6bb5;--bd:#e7e5f7;--sh:0 8px 30px rgba(109,93,252,.12)}
+@media(prefers-color-scheme:dark){:root{--bg:#0d0b1a;--card:#171429;--tx:#eeecff;--mu:#a29fc4;--bd:#2b2747;--sh:0 8px 30px rgba(0,0,0,.4)}}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 "Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+header{position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 5vw;backdrop-filter:blur(14px);background:color-mix(in srgb,var(--card) 80%,transparent);border-bottom:1px solid var(--bd)}
+.logo{font-weight:800;font-size:22px;background:linear-gradient(90deg,var(--pr),var(--pr2));-webkit-background-clip:text;background-clip:text;color:transparent;cursor:pointer}
+nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button,input,select,textarea{font:inherit;padding:10px 14px;border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);outline:none;transition:.2s}
+input:focus,select:focus,textarea:focus{border-color:var(--pr);box-shadow:0 0 0 3px rgba(109,93,252,.2)}
+button{cursor:pointer;font-weight:600}button:hover{transform:translateY(-1px)}
+.p{background:linear-gradient(135deg,var(--pr),var(--pr2));color:#fff;border:0;box-shadow:0 6px 18px rgba(109,93,252,.35)}
+.g{background:transparent;border:0}.d{color:#e5484d}
+.hero{padding:56px 5vw 70px;text-align:center;color:#fff;background:radial-gradient(circle at 20% 20%,#ff6bb5 0,transparent 40%),radial-gradient(circle at 85% 30%,#38bdf8 0,transparent 40%),linear-gradient(135deg,#5b47f5,#8b5cf6);position:relative}
+.hero h2{font-size:clamp(28px,6vw,48px);margin:0 0 8px;line-height:1.15}.hero p{opacity:.9;margin:0 auto 24px;max-width:520px}
+.search{display:flex;flex-wrap:wrap;gap:8px;max-width:760px;margin:auto;background:var(--card);padding:10px;border-radius:18px;box-shadow:var(--sh)}
+.search input,.search select{flex:1;min-width:130px;border:0;background:var(--bg)}
+.stats{display:flex;justify-content:center;gap:28px;margin-top:22px;flex-wrap:wrap}.stats b{display:block;font-size:24px}
+main{max-width:900px;margin:-30px auto 60px;padding:0 16px;position:relative}
+main.plain{margin-top:24px}
+.grid{display:grid;gap:14px;margin-top:34px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:18px;box-shadow:var(--sh);animation:up .4s both;transition:.25s}
+.card:hover{transform:translateY(-3px);border-color:var(--pr)}
+@keyframes up{from{opacity:0;transform:translateY(12px)}}
+.job{display:flex;gap:14px}.av{flex:none;width:52px;height:52px;border-radius:14px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:22px}
+.job h3{margin:0}.mu{color:var(--mu);font-size:13px}
+.tag{display:inline-block;background:var(--bg);border-radius:99px;padding:3px 12px;font-size:12px;margin:8px 6px 0 0;font-weight:600;color:var(--pr)}
+.tag.s-shortlisted{background:#dcfce7;color:#15803d}.tag.s-rejected{background:#fee2e2;color:#b91c1c}.tag.s-pending{background:#fef3c7;color:#b45309}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px;flex-wrap:wrap}
+h2.t{margin:0 0 6px}
+dialog{border:0;border-radius:22px;padding:26px;width:min(440px,92vw);background:var(--card);color:var(--tx);box-shadow:0 30px 80px rgba(0,0,0,.4);animation:up .25s}
+dialog::backdrop{background:rgba(10,8,30,.55);backdrop-filter:blur(4px)}
+dialog h3{margin:0 0 14px}form{display:grid;gap:10px}.x{position:absolute;right:12px;top:12px;border:0;background:transparent;padding:6px 10px}
+.empty{text-align:center;padding:40px;color:var(--mu)}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1633;color:#fff;padding:12px 18px;border-radius:12px;display:none;max-width:90%;white-space:pre-line;z-index:99;box-shadow:var(--sh)}
+.sk{height:96px;border-radius:18px;background:linear-gradient(90deg,var(--card),var(--bd),var(--card));background-size:200%;animation:sh 1.2s infinite}@keyframes sh{to{background-position:-200%}}
+</style></head><body>
+<header><div class="logo" data-go="jobs">✦ HireHub</div><nav id="nav"></nav></header>
+<div id="hero"></div><main id="app"></main><dialog id="m"></dialog><div id="toast"></div>
+<script>
+const $=s=>document.querySelector(s), app=$('#app'), m=$('#m');
+let user=JSON.parse(localStorage.user||'null'), token=localStorage.token||'';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hue=s=>[...s].reduce((a,c)=>a*31+c.charCodeAt(0),7)%360;
+const ago=d=>{const s=(Date.now()-new Date(d+'Z'))/1000;return s<3600?Math.max(1,s/60|0)+'m ago':s<86400?(s/3600|0)+'h ago':(s/86400|0)+'d ago'};
+function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(e.t);e.t=setTimeout(()=>e.style.display='none',3500)}
+async function api(p,method='GET',body){
+  const r=await fetch('/api'+p,{method,headers:{'Content-Type':'application/json',...(token&&{Authorization:'Bearer '+token})},body:body&&JSON.stringify(body)});
+  if(r.status===204)return null;const d=await r.json().catch(()=>({}));
+  if(!r.ok){if(r.status===401&&token)logout(true);throw new Error([d.error,...(d.details||[])].join('\n')||'Request failed')}return d}
+function setAuth(d){token=d.token;user=d.user;localStorage.token=token;localStorage.user=JSON.stringify(user);m.close();nav();toast('Welcome, '+user.name+' 👋');go('jobs')}
+function logout(q){token='';user=null;localStorage.clear();nav();if(!q)toast('Logged out');go('jobs')}
+function nav(){$('#nav').innerHTML=user?(user.role==='employer'?`<button class="g" data-go="mine">My Jobs</button><button class="p" data-act="post">+ Post Job</button>`:`<button class="g" data-go="apps">My Applications</button>`)+`<span class="mu">👤 ${esc(user.name)}</span><button class="g" data-act="logout">Logout</button>`
+ :`<button class="g" data-act="login">Login</button><button class="p" data-act="register">Sign up free</button>`}
+function modal(h){m.innerHTML=`<button class="x" data-act="close">✕</button>`+h;m.showModal()}
+m.addEventListener('click',e=>{if(e.target===m)m.close()});
+const fd=e=>Object.fromEntries(new FormData(e.target));
+const authForm=r=>{modal(`<h3>${r==='login'?'Welcome back 👋':'Create your account ✨'}</h3><form id="f">${r==='register'?'<input name="name" placeholder="Full name" required minlength="2">':''}
+ <input name="email" type="email" placeholder="Email" required><input name="password" type="password" placeholder="Password${r==='register'?' (min 8 chars)':''}" required minlength="${r==='register'?8:1}">
+ ${r==='register'?'<select name="role"><option value="seeker">🔎 I am looking for a job</option><option value="employer">🏢 I want to hire</option></select>':''}<button class="p">${r==='login'?'Login':'Sign up'}</button></form>`);
+ $('#f').onsubmit=async e=>{e.preventDefault();try{setAuth(await api('/auth/'+r,'POST',fd(e)))}catch(x){toast(x.message)}}};
+const postForm=()=>{modal(`<h3>Post a new job 🚀</h3><form id="f"><input name="title" placeholder="Job title" required minlength="3"><input name="company" placeholder="Company" required minlength="2">
+ <input name="location" placeholder="Location" required><select name="type"><option>Full-time</option><option>Part-time</option><option>Internship</option><option>Contract</option></select>
+ <input name="salary" placeholder="Salary (optional)"><textarea name="description" rows="4" placeholder="Describe the role (min 20 chars)" required minlength="20"></textarea><button class="p">Publish job</button></form>`);
+ $('#f').onsubmit=async e=>{e.preventDefault();try{await api('/jobs','POST',fd(e));m.close();toast('Job published ✅');go('mine')}catch(x){toast(x.message)}}};
+const applyForm=id=>{modal(`<h3>Apply for this job</h3><form id="f"><textarea name="note" rows="4" placeholder="Cover note (optional)"></textarea><button class="p">Submit application</button></form>`);
+ $('#f').onsubmit=async e=>{e.preventDefault();try{await api(`/jobs/${id}/apply`,'POST',fd(e));m.close();toast('Application sent 🎉')}catch(x){toast(x.message)}}};
+const jobCard=(j,i)=>`<div class="card" style="animation-delay:${i*50}ms"><div class="job"><div class="av" style="background:linear-gradient(135deg,hsl(${hue(j.company)} 75% 55%),hsl(${(hue(j.company)+50)%360} 75% 60%))">${esc(j.company[0].toUpperCase())}</div>
+<div style="flex:1"><h3>${esc(j.title)}</h3><div class="mu">${esc(j.company)} · 📍 ${esc(j.location)}</div>
+<span class="tag">${esc(j.type)}</span>${j.salary?`<span class="tag">💰 ${esc(j.salary)}</span>`:''}</div></div>
+<p class="mu" style="margin:12px 0 0">${esc(j.description.slice(0,170))}${j.description.length>170?'…':''}</p>
+<div class="foot"><span class="mu">${ago(j.created_at)}</span>${user?.role!=='employer'?`<button class="p" data-act="apply" data-id="${j.id}">Apply now</button>`:''}</div></div>`;
+async function jobs(){
+ $('#hero').innerHTML=`<section class="hero"><h2>Find the job that fits your life</h2><p>Browse openings, apply in one click, and track your applications — all in one place.</p>
+ <div class="search"><input id="q" placeholder="🔍 Job title or company"><input id="l" placeholder="📍 Location"><select id="t"><option value="">All types</option><option>Full-time</option><option>Part-time</option><option>Internship</option><option>Contract</option></select><button class="p" id="s">Search</button></div>
+ <div class="stats"><div><b id="n">–</b>open roles</div><div><b>1-click</b>apply</div><div><b>Live</b>tracking</div></div></section>`;
+ app.className='';app.innerHTML='<div class="grid"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>';
+ const load=async()=>{const p=new URLSearchParams({q:$('#q').value,location:$('#l').value,type:$('#t').value});const js=await api('/jobs?'+p);$('#n').textContent=js.length;
+  app.innerHTML=`<div class="grid">${js.map(jobCard).join('')||'<div class="card empty">😕 No jobs found. Try different keywords.</div>'}</div>`};
+ $('#s').onclick=()=>load().catch(e=>toast(e.message));['q','l'].forEach(i=>$('#'+i).onkeydown=e=>e.key==='Enter'&&$('#s').click());await load()}
+const view=(h)=>{$('#hero').innerHTML='';app.className='plain';app.innerHTML=h};
+const routes={jobs,
+ async mine(){const js=await api('/jobs/mine');view(`<h2 class="t">My posted jobs</h2><div class="grid" style="margin-top:14px">`+(js.map(j=>`<div class="card"><h3 style="margin:0">${esc(j.title)}</h3><div class="mu">${esc(j.company)} · ${esc(j.location)} · <b>${j.applicants}</b> applicant(s)</div>
+  <div class="foot"><span></span><span><button data-act="applicants" data-id="${j.id}">👥 Applicants</button> <button class="d" data-act="del" data-id="${j.id}">Delete</button></span></div><div id="ap${j.id}"></div></div>`).join('')||'<div class="card empty">No jobs yet. Click “+ Post Job”.</div>')+'</div>')},
+ async apps(){const a=await api('/applications/mine');view(`<h2 class="t">My applications</h2><div class="grid" style="margin-top:14px">`+(a.map(x=>`<div class="card"><h3 style="margin:0">${esc(x.title)}</h3><div class="mu">${esc(x.company)} · ${ago(x.created_at)}</div><span class="tag s-${esc(x.status)}">${esc(x.status)}</span></div>`).join('')||'<div class="card empty">You haven’t applied anywhere yet.</div>')+'</div>')}};
+async function go(r){try{await routes[r]()}catch(e){toast(e.message)}}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-go],[data-act]');if(!b)return;const{go:g,act,id}=b.dataset;if(g)return go(g);
+ try{
+  if(act==='close')m.close();if(act==='logout')logout();
+  if(act==='login'||act==='register')authForm(act);
+  if(act==='post')postForm();
+  if(act==='apply'){user?applyForm(id):(toast('Please login to apply'),authForm('login'))}
+  if(act==='del'&&confirm('Delete this job?')){await api('/jobs/'+id,'DELETE');go('mine')}
+  if(act==='applicants'){const a=await api(`/jobs/${id}/applications`);$('#ap'+id).innerHTML=a.map(x=>`<div style="border-top:1px solid var(--bd);margin-top:12px;padding-top:10px"><b>${esc(x.name)}</b> <span class="mu">${esc(x.email)}</span> <span class="tag s-${esc(x.status)}">${esc(x.status)}</span><div class="mu">${esc(x.note)}</div>
+   <button data-act="st" data-id="${x.id}" data-s="shortlisted">✅ Shortlist</button> <button class="d" data-act="st" data-id="${x.id}" data-s="rejected">Reject</button></div>`).join('')||'<p class="mu">No applicants yet.</p>'}
+  if(act==='st'){await api('/applications/'+id,'PATCH',{status:b.dataset.s});toast('Marked '+b.dataset.s);b.closest('.card').querySelector('[data-act=applicants]').click()}
+ }catch(x){toast(x.message)}});
+nav();go('jobs');
+</script></body></html>
